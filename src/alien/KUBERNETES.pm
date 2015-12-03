@@ -35,6 +35,7 @@ sub submit {
 
     #--> define temporary files for log, out & err
     my $n=AliEn::TMPFile->new({ttl=>'24 hours', base_dir=>$self->{PATH},filename=>$ENV{ALIEN_LOG}} );
+    my $counter= sprintf("%d", $$.$self->{COUNTER});
 
     # This is the real paramters for the batch system.
     # In this case, the POD definition for kubernetes.
@@ -42,10 +43,10 @@ sub submit {
         apiVersion: v1
         kind: Pod
         metadata:
-          name: alien
+          name: alien-$counter
         spec:
           containers:
-          - name: alien
+          - name: alien-$counter
             image: test:alien
             command: ['$command']
             ports:
@@ -54,6 +55,8 @@ sub submit {
                 - name: data
                   mountPath: /var/lib/aliprod/.alien
                   readOnly: false
+                - name: cvmfs
+                  mountPath: /cvmfs/alice.cern.ch
             workingDir: /var/lib/aliprod/.alien
             env:
                 - name: ALIEN_CM_AS_LDAP_PROXY
@@ -66,6 +69,9 @@ sub submit {
             - name: data
               hostPath:
                 path: /var/lib/aliprod/.alien
+            - name: cvmfs
+              hostPath:
+                path: /cvmfs/alice.cern.ch
           restartPolicy: Never
     }) =~ s/^ {8}//mg;
 
@@ -113,8 +119,9 @@ sub _filterOwnJobs {
 
 sub getNumberRunning{
     my $self = shift;
+    $self->deletedExitPods();
     # Get the number ob jobs running by the number of PODS
-    my $jobquery="kubectl get pods | wc -l ";
+    my $jobquery="kubectl get pods | grep Running | wc -l ";
     open(JOBS,"$jobquery |") or $self->info("error doing $jobquery");
     my $njobs=<JOBS>;
     close(JOBS);
@@ -128,8 +135,9 @@ sub getNumberRunning{
 
 sub getNumberQueued{
     my $self = shift;
+    $self->deletedExitPods();
     # Get the number of jobs qeued by the number of PODS
-    my $jobquery="kubectl get pods | wc -l";
+    my $jobquery="kubectl get pods | grep Pending | wc -l";
     open(JOBS,"$jobquery |") or $self->info("error doing $jobquery");
     my $njobs=<JOBS>;
     close(JOBS);
@@ -141,7 +149,15 @@ sub getNumberQueued{
     return $njobs;
 }
 
-# WTF lamme function
+sub deletedExitPods{
+    my $self = shift;
+    # Get the number of pods with exit status
+    my @pods = `kubectl get pods | grep ExitCode | awk '{ print \$1 }'`;
+    foreach my $pod (@pods) {
+        my @result = system("kubectl delete pod $pod");
+    }
+}
+
 sub getStatus {
     return 'QUEUED';
 }
@@ -172,7 +188,7 @@ sub initialize() {
     $self->{SUBMIT_CMD} =  "kubectl create -f - ";
 
     # https://cloud.google.com/container-engine/docs/kubectl/delete
-    $self->{KILL_CMD} = "kubectl delete";
+    $self->{KILL_CMD} = "kubectl delete pod";
 
     # https://cloud.google.com/container-engine/docs/kubectl/get
     $self->{STATUS_CMD} = "kubectl get pods";
