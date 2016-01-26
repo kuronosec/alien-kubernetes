@@ -35,12 +35,8 @@ sub submit {
 
     #--> define temporary files for log, out & err
     my $n=AliEn::TMPFile->new({ttl=>'24 hours', base_dir=>$self->{PATH},filename=>$ENV{ALIEN_LOG}} );
-    my $jobAgentID = 0;
-    if ( $self->{COUNTER} > 0) {
-        $jobAgentID = sprintf("%d", $$.$self->{COUNTER});
-    } else {
-        $jobAgentID = $$;
-    }
+    my $jobAgentID = $$;
+    my $containerID = sprintf("%d", $$.$self->{COUNTER});
 
     # This is the real paramters for the batch system.
     # In this case, the POD definition for kubernetes.
@@ -48,10 +44,10 @@ sub submit {
         apiVersion: v1
         kind: Pod
         metadata:
-          name: alien-$jobAgentID
+          name: alien-$containerID
         spec:
           containers:
-          - name: alien-$jobAgentID
+          - name: alien-$containerID
             image: test:alien
             command: ['$command']
             ports:
