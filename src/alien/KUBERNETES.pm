@@ -35,7 +35,12 @@ sub submit {
 
     #--> define temporary files for log, out & err
     my $n=AliEn::TMPFile->new({ttl=>'24 hours', base_dir=>$self->{PATH},filename=>$ENV{ALIEN_LOG}} );
-    my $counter= sprintf("%d", $$.$self->{COUNTER});
+    my $jobAgentID = 0;
+    if ( $self->{COUNTER} > 0) {
+        $jobAgentID = sprintf("%d", $$.$self->{COUNTER});
+    } else {
+        $jobAgentID = $$;
+    }
 
     # This is the real paramters for the batch system.
     # In this case, the POD definition for kubernetes.
@@ -43,21 +48,21 @@ sub submit {
         apiVersion: v1
         kind: Pod
         metadata:
-          name: alien-$counter
+          name: alien-$jobAgentID
         spec:
           containers:
-          - name: alien-$counter
+          - name: alien-$jobAgentID
             image: test:alien
             command: ['$command']
             ports:
                 - containerPort: 8089
             volumeMounts:
                 - name: data
-                  mountPath: /var/lib/aliprod/.alien
+                  mountPath: /var/lib/aliprod/.alien/tmp/agent.startup.$jobAgentID
                   readOnly: false
                 - name: cvmfs
                   mountPath: /cvmfs/alice.cern.ch
-            workingDir: /var/lib/aliprod/.alien
+            workingDir: /var/lib/aliprod/.alien/tmp
             env:
                 - name: ALIEN_CM_AS_LDAP_PROXY
                   value: '$cm'
@@ -68,7 +73,7 @@ sub submit {
           volumes:
             - name: data
               hostPath:
-                path: /var/lib/aliprod/.alien
+                path: /var/lib/aliprod/.alien/tmp/agent.startup.$jobAgentID
             - name: cvmfs
               hostPath:
                 path: /cvmfs/alice.cern.ch
