@@ -50,8 +50,6 @@ sub submit {
           - name: alien-$containerID
             image: test:alien
             command: ['$command']
-            ports:
-                - containerPort: 8089
             volumeMounts:
                 - name: data
                   mountPath: /var/lib/aliprod/.alien/tmp/agent.startup.$jobAgentID
