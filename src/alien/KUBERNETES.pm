@@ -174,7 +174,7 @@ sub initialize() {
     # Create the necessary env variables.
     $ENV{'KUBERNETES_ROOT'}="/opt/kubernetes";
     $ENV{'KUBERNETES_CONTRIB'}="mesos";
-    $ENV{'KUBERNETES_MASTER_IP'}=`hostname -i`;
+    $ENV{'KUBERNETES_MASTER_IP'}="127.0.0.1";
     $ENV{'KUBERNETES_MASTER'}="http://$ENV{'KUBERNETES_MASTER_IP'}:8888";
     $ENV{'PATH'}="/opt/kubernetes/bin/linux/amd64/:$ENV{'PATH'}";
     $ENV{'MESOS_MASTER'}="127.0.0.1:5050";
