@@ -118,7 +118,7 @@ sub _filterOwnJobs {
 
 sub getNumberRunning{
     my $self = shift;
-    $self->deletedExitPods();
+    $self->deleteCompletedPods();
     # Get the number ob jobs running by the number of PODS
     my $jobquery="kubectl get pods | grep Running | wc -l ";
     open(JOBS,"$jobquery |") or $self->info("error doing $jobquery");
@@ -134,7 +134,7 @@ sub getNumberRunning{
 
 sub getNumberQueued{
     my $self = shift;
-    $self->deletedExitPods();
+    $self->deleteCompletedPods();
     # Get the number of jobs qeued by the number of PODS
     my $jobquery="kubectl get pods | grep Pending | wc -l";
     open(JOBS,"$jobquery |") or $self->info("error doing $jobquery");
@@ -148,10 +148,10 @@ sub getNumberQueued{
     return $njobs;
 }
 
-sub deletedExitPods{
+sub deleteCompletedPods{
     my $self = shift;
     # Get the number of pods with exit status
-    my @pods = `kubectl get pods | grep ExitCode | awk '{ print \$1 }'`;
+    my @pods = `kubectl get pods -a | grep Completed | awk '{ print \$1 }'`;
     foreach my $pod (@pods) {
         my @result = system("kubectl delete pod $pod");
     }
